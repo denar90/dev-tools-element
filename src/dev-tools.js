@@ -8,6 +8,7 @@ export default class DevTools {
     this.monkeyPatchCommon();
     this.attachMonkeyPatchListeners();
     this.monkeypatchLoadResourcePromise();
+    this.showTimelinePanel();
   }
 
   loadTimelineDataFromUrl(timelineURL) {
@@ -148,5 +149,14 @@ export default class DevTools {
         this.window.Common.settings.createSetting('timelineCaptureFilmStrip', true).set(false);
       oldSetMarkers.call(panel, panel._performanceModel._timelineModel);
     };
+  }
+
+  showTimelinePanel() {
+    const plzRepeat = _ => setTimeout(_ => this.showTimelinePanel(), 100);
+    if (typeof this.window.UI === 'undefined' ||
+      typeof this.window.UI.inspectorView === 'undefined'
+    ) return plzRepeat();
+
+    this.window.UI.inspectorView.showPanel('timeline');
   }
 }
