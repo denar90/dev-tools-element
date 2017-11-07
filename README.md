@@ -5,6 +5,8 @@ Inspired by amazing work done by @paulirish for [timeline-viewer](https://github
 
 ## Demo
 
+![giphy 7](https://user-images.githubusercontent.com/6231516/32519349-1f357e1a-c415-11e7-8414-468a14f1e8ee.gif)
+
 [Check it live!](https://denar90.github.io/dev-tools-element/demo/)
 
 ## Install
