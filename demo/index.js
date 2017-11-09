@@ -10,7 +10,7 @@ class Utils {
     }
   }
 
-  doCORSRequest(url, method='GET', body, addRequestHeaders, onprogress) {
+  doCORSRequest(url, method = 'GET', body, addRequestHeaders, onprogress) {
     return new Promise((resolve, reject) => {
       // Use an XHR rather than fetch so we can have progress events
       const xhr = new XMLHttpRequest();
@@ -20,7 +20,7 @@ class Utils {
       if (method === 'GET') {
         xhr.onprogress = onprogress;
       }
-      xhr.onload = _ => {
+      xhr.onload = () => {
         resolve(xhr);
       };
       xhr.onerror = error => {
@@ -31,77 +31,168 @@ class Utils {
   }
 }
 
-class DevTools {
-  constructor(options) {
-    this.window = options.window;
-    this.devtoolsBase = this.window.document.getElementById('devtoolsscript').src.replace(/inspector\.js.*/, '');
+class GlobalScope {
+  constructor() {
+    this.globalScope = null;
+  }
+
+  set scope(value) {
+    return value;
+  }
+
+  get scope() {
+    if (!this.globalScope) throw new Error('set globalScope  first');
+    return this.globalScope;
+  }
+}
+
+var devtoolsScope = new GlobalScope();
+
+class ThirdPartyAssetLoader {
+  constructor(url) {
+    this.scope = devtoolsScope.scope;
+    this.url = url;
+  }
+
+  fetchTimelineAsset(addRequestHeaders = Function.prototype, method = 'GET', body) {
+    const utils = new Utils();
+    const url = this.url.href;
+    this.loadingStarted = false;
+
+    return utils.fetch(url, {
+      url, addRequestHeaders: addRequestHeaders.bind(this), method, body,
+      onprogress: this.updateProgress.bind(this),
+    }, true)
+      .then(xhr => xhr.responseText)
+      .catch(error => {
+        console.log(error);
+      });
+  }
+
+  updateProgress(evt) {
+    try {
+      this.scope.UI.inspectorView.showPanel('timeline').then(() => {
+        const panel = this.scope.Timeline.TimelinePanel.instance();
+        // start progress
+        if (!this.loadingStarted) {
+          this.loadingStarted = true;
+          panel && panel.loadingStarted();
+        }
+
+        // update progress
+        panel && panel.loadingProgress(evt.loaded / (evt.total || this.totalSize));
+      });
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+}
+
+class GithubTimelineLoader extends ThirdPartyAssetLoader {
+  constructor(url) {
+    super(url);
+    this.url.hostname = this.url.hostname.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+  }
+}
+
+class DropBoxTimelineLoader extends ThirdPartyAssetLoader {
+  constructor(url) {
+    super(url);
+    this.url.hostname = this.url.hostname.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+  }
+}
+
+class AssetLoader {
+  loadAsset(url) {
+    //@todo add gdrive support
+    /*if (this.timelineProvider === 'drive')
+      return this.driveAssetLoaded.then(payload => payload);*/
+
+    if (url.hostname.match('github.com')) {
+      const githubTimelineLoader = new GithubTimelineLoader(url);
+      return githubTimelineLoader.fetchTimelineAsset();
+    } else if (url.hostname.match('www.dropbox.com')) {
+      const dropboxTimelineLoader = new DropBoxTimelineLoader(url);
+      return dropboxTimelineLoader.fetchTimelineAsset();
+    } else {
+      return Promise.reject();
+    }
+  }
+}
+
+class DevToolsMonkeyPatcher {
+  constructor() {
+    this.scope = devtoolsScope.scope;
+    this.devtoolsBase = this.scope.document.getElementById('devtoolsscript').src.replace(/inspector\.js.*/, '');
+    this.timelineLoader = new AssetLoader();
+  }
+
+  patchDevTools() {
+    this.monkeyPatchInspectorBackend();
     this.monkeyPatchRuntime();
     this.monkeyPatchCommon();
     this.attachMonkeyPatchListeners();
     this.monkeypatchLoadResourcePromise();
-    this.showTimelinePanel();
   }
 
-  loadTimelineDataFromUrl(timelineURL) {
-    const plzRepeat = _ => setTimeout(_ => this.loadTimelineDataFromUrl(timelineURL), 100);
-    if (typeof this.window.Timeline === 'undefined' ||
-      typeof this.window.Timeline.TimelinePanel === 'undefined'
-    ) return plzRepeat();
-
-    this.window.Timeline.TimelinePanel.instance()._loadFromURL(timelineURL);
+  monkeyPatchInspectorBackend() {
+    const AgentPrototype = this.scope.Protocol.InspectorBackend._AgentPrototype;
+    AgentPrototype.prototype._sendMessageToBackendPromise = () => Promise.resolve();
   }
 
   monkeyPatchRuntime() {
-    this.window.Runtime.experiments._supportEnabled = true;
-    this.window.Runtime.experiments.isEnabled = name => {
+    this.scope.Runtime.experiments._supportEnabled = true;
+    this.scope.Runtime.experiments.isEnabled = name => {
       return name == 'timelineV8RuntimeCallStats';
     };
   }
 
   monkeyPatchCommon() {
-    this.window.Common.moduleSetting = function(module) {
+    this.scope.Common.moduleSetting = function(module) {
       const ret = {
-        addChangeListener: _ => { },
-        removeChangeListener: _ => { },
-        get: _ => new Map(),
-        set: _ => { },
-        getAsArray: _ => []
+        addChangeListener: () => { },
+        removeChangeListener: () => { },
+        get: () => new Map(),
+        set: () => { },
+        getAsArray: () => []
       };
       if (module === 'releaseNoteVersionSeen')
-        ret.get = _ => Infinity;
+        ret.get = () => Infinity;
       if (module === 'showNativeFunctionsInJSProfile')
-        ret.get = _ => true;
+        ret.get = () => true;
       return ret;
     };
 
     // don't send application errors to console drawer
-    this.window.Common.Console.prototype.addMessage = function(text, level, show) {
-      level = level || Common.Console.MessageLevel.Info;
-      const message = new Common.Console.Message(text, level, Date.now(), show || false);
+    this.scope.Common.Console.prototype.addMessage = (text, level, show) => {
+      level = level || this.scope.Common.Console.MessageLevel.Info;
+      const message = new this.scope.Common.Console.Message(text, level, Date.now(), show || false);
       this._messages.push(message);
-      this.dispatchEventToListeners(this.window.Common.Console.Events.MessageAdded, message);
-      this.window.console[level](text);
+      this.dispatchEventToListeners(this.scope.Common.Console.Events.MessageAdded, message);
+      this.scope.console[level](text);
     };
 
     // Common.settings is created in a window onload listener
-    window.addEventListener('load', _ => {
-      this.window.Common.settings.createSetting('timelineCaptureNetwork', true).set(true);
-      this.window.Common.settings.createSetting('timelineCaptureFilmStrip', true).set(true);
+    window.addEventListener('load', () => {
+      this.scope.Common.settings.createSetting('timelineCaptureNetwork', true).set(true);
+      this.scope.Common.settings.createSetting('timelineCaptureFilmStrip', true).set(true);
     });
   }
 
   attachMonkeyPatchListeners() {
     // don't let devtools trap ctrl-r
-    this.window.document.addEventListener('keydown', event => {
-      if (self.UI && UI.KeyboardShortcut.eventHasCtrlOrMeta(event) && String.fromCharCode(event.which).toLowerCase() === 'r') {
+    this.scope.document.addEventListener('keydown', event => {
+      if (self.UI && this.scope.UI.KeyboardShortcut.eventHasCtrlOrMeta(event) &&
+        String.fromCharCode(event.which).toLowerCase() === 'r') {
         event.handled = true;
       }
     });
   }
 
   monkeypatchLoadResourcePromise() {
-    this.origLoadResourcePromise = this.window.Runtime.loadResourcePromise;
-    this.window.Runtime.loadResourcePromise = this.loadResource.bind(this);
+    this.origLoadResourcePromise = this.scope.Runtime.loadResourcePromise;
+    this.scope.Runtime.loadResourcePromise = this.loadResource.bind(this);
   }
 
   loadResource(requestedURL) {
@@ -121,74 +212,36 @@ class DevTools {
       return this.origLoadResourcePromise(redirectedURL.toString());
     }
 
-    //@todo add gdrive support
-    /*if (this.timelineProvider === 'drive')
-      return this.driveAssetLoaded.then(payload => payload);*/
+    return this.timelineLoader.loadAsset(url, this.scope);
+  }
+}
 
-    // adjustments for CORS
-    url.hostname = url.hostname.replace('github.com', 'githubusercontent.com');
-    url.hostname = url.hostname.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+class DevTools {
+  constructor(options = {}) {
+    devtoolsScope.globalScope = options.scope || window;
+    this.scope = devtoolsScope.scope;
+    const devToolsMonkeyPatcher = new DevToolsMonkeyPatcher();
+    devToolsMonkeyPatcher.patchDevTools();
 
-    return this.fetchTimelineAsset(url.href).then(payload => payload);
+    this.showTimelinePanel();
   }
 
-  fetchTimelineAsset(url, addRequestHeaders = Function.prototype, method = 'GET', body) {
-    this.netReqMuted = false;
-    this.loadingStarted = false;
-    const utils = new Utils();
-    return utils.fetch(url, {
-      url, addRequestHeaders: addRequestHeaders.bind(this), method, body,
-      onprogress: this.updateProgress.bind(this),
-    }, true)
-    .then(xhr => xhr.responseText)
-    .catch(error => {
-        console.log(error);
-    });
-  }
+  loadTimelineDataFromUrl(timelineURL) {
+    const plzRepeat = () => setTimeout(() => this.loadTimelineDataFromUrl(timelineURL), 100);
+    if (typeof this.scope.Timeline === 'undefined' ||
+      typeof this.scope.Timeline.TimelinePanel === 'undefined'
+    ) return plzRepeat();
 
-  updateProgress(evt) {
-    try {
-      this.window.UI.inspectorView.showPanel('timeline').then(_ => {
-        const panel = this.window.Timeline.TimelinePanel.instance();
-        // start progress
-        if (!this.loadingStarted) {
-          this.loadingStarted = true;
-          panel && panel.loadingStarted();
-        }
-
-        // update progress
-        panel && panel.loadingProgress(evt.loaded / (evt.total || this.totalSize));
-
-        // flip off filmstrip or network if theres no data in the trace
-        if (!this.netReqMuted) {
-          this.netReqMuted = true;
-          this.monkepatchSetMarkers();
-        }
-      });
-    } catch (e) {
-      console.log(e);
-    }
-  }
-
-  monkepatchSetMarkers() {
-    const panel = this.window.Timeline.TimelinePanel.instance();
-    const oldSetMarkers = panel._setMarkers;
-    panel._setMarkers = () => {
-      if (panel._performanceModel._timelineModel.networkRequests().length === 0)
-        this.window.Common.settings.createSetting('timelineCaptureNetwork', true).set(false);
-      if (panel._performanceModel.filmStripModel()._frames.length === 0)
-        this.window.Common.settings.createSetting('timelineCaptureFilmStrip', true).set(false);
-      oldSetMarkers.call(panel, panel._performanceModel._timelineModel);
-    };
+    this.scope.Timeline.TimelinePanel.instance()._loadFromURL(timelineURL);
   }
 
   showTimelinePanel() {
-    const plzRepeat = _ => setTimeout(_ => this.showTimelinePanel(), 100);
-    if (typeof this.window.UI === 'undefined' ||
-      typeof this.window.UI.inspectorView === 'undefined'
+    const plzRepeat = () => setTimeout(() => this.showTimelinePanel(), 100);
+    if (typeof this.scope.UI === 'undefined' ||
+      typeof this.scope.UI.inspectorView === 'undefined'
     ) return plzRepeat();
 
-    this.window.UI.inspectorView.showPanel('timeline');
+    this.scope.UI.inspectorView.showPanel('timeline');
   }
 }
 
@@ -204,10 +257,10 @@ customElements.define('dev-tools-element', class extends HTMLElement {
       this._contentWindow.timelineURL = this.getAttribute('src');
       this._contentWindow.document.write(`
         <body>
-          <script src="https://chrome-devtools-frontend.appspot.com/serve_file/@14fe0c24836876e87295c3bd65f8482cffd3de73/inspector.js" id="devtoolsscript"><\/script>
+          <script src="https://chrome-devtools-frontend.appspot.com/serve_file/@14fe0c24836876e87295c3bd65f8482cffd3de73/inspector.js" id="devtoolsscript"></script>
           <script>
               document.addEventListener('DOMContentLoaded', () => {
-                window.devtools = new window.IframeDevTools({ window: window });
+                window.devtools = new window.IframeDevTools({ scope: window });
                 if (this.timelineURL) {
                   window.devtools.loadTimelineDataFromUrl(this.timelineURL);
                 }
@@ -215,7 +268,7 @@ customElements.define('dev-tools-element', class extends HTMLElement {
               const DOMContentLoadedEvent = document.createEvent('Event');
               DOMContentLoadedEvent.initEvent('DOMContentLoaded', true, true);
               window.document.dispatchEvent(DOMContentLoadedEvent);
-          <\/script>
+          </script>
         </body>
       `);
     };

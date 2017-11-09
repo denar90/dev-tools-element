@@ -7,7 +7,7 @@ export default class Utils {
     }
   }
 
-  doCORSRequest(url, method='GET', body, addRequestHeaders, onprogress) {
+  doCORSRequest(url, method = 'GET', body, addRequestHeaders, onprogress) {
     return new Promise((resolve, reject) => {
       // Use an XHR rather than fetch so we can have progress events
       const xhr = new XMLHttpRequest();
@@ -17,7 +17,7 @@ export default class Utils {
       if (method === 'GET') {
         xhr.onprogress = onprogress;
       }
-      xhr.onload = _ => {
+      xhr.onload = () => {
         resolve(xhr);
       };
       xhr.onerror = error => {

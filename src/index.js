@@ -12,10 +12,10 @@ customElements.define('dev-tools-element', class extends HTMLElement {
       this._contentWindow.timelineURL = this.getAttribute('src');
       this._contentWindow.document.write(`
         <body>
-          <script src="https://chrome-devtools-frontend.appspot.com/serve_file/@14fe0c24836876e87295c3bd65f8482cffd3de73/inspector.js" id="devtoolsscript"><\/script>
+          <script src="https://chrome-devtools-frontend.appspot.com/serve_file/@14fe0c24836876e87295c3bd65f8482cffd3de73/inspector.js" id="devtoolsscript"></script>
           <script>
               document.addEventListener('DOMContentLoaded', () => {
-                window.devtools = new window.IframeDevTools({ window: window });
+                window.devtools = new window.IframeDevTools({ scope: window });
                 if (this.timelineURL) {
                   window.devtools.loadTimelineDataFromUrl(this.timelineURL);
                 }
@@ -23,7 +23,7 @@ customElements.define('dev-tools-element', class extends HTMLElement {
               const DOMContentLoadedEvent = document.createEvent('Event');
               DOMContentLoadedEvent.initEvent('DOMContentLoaded', true, true);
               window.document.dispatchEvent(DOMContentLoadedEvent);
-          <\/script>
+          </script>
         </body>
       `);
     };
