@@ -1,9 +1,9 @@
 import Utils from '../utils';
-import devtoolsScope from '../devtools-scope';
+import config from '../config';
 
-export default class ThirdPartyAssetLoader {
+export default class BaseTimelineLoader {
   constructor(url) {
-    this.scope = devtoolsScope.scope;
+    this.scope = config.scope;
     this.url = url;
   }
 
@@ -39,5 +39,4 @@ export default class ThirdPartyAssetLoader {
       console.log(e);
     }
   }
-
 }

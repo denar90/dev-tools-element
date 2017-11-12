@@ -4,8 +4,54 @@
   <meta charset="utf-8">
   <script src="./index.js"></script>
 </head>
-<body>
-  <!-- Runs custom element -->
-  <dev-tools-element src="https://gist.github.com/paulirish/f83d30384954937dc3a1fae970a4ae52/raw/b25b27741c652d3091a316dfd8b58bf72f14aa74/twitch.json" width="800" height="500"></dev-tools-element>
+  <h2>Github/Dropbox source</h2>
+  <dev-tools-element src="https://www.dropbox.com/s/s1n8m8n5oddgoxx/timeline-docs.json?dl=0" width="800" height="500"></dev-tools-element>
+  <hr/>
+  <h2>Google Drive source</h2>
+  <button class="auth-btn">Auth to Google and show trace</button>
+  <br>
+  <dev-tools-element class="gdrive" width="800" height="500"></dev-tools-element>
 </body>
+<script src="https://apis.google.com/js/client.js"></script>
+<script>
+  // example for Google Drive usage
+  const authBtn = document.querySelector('.auth-btn');
+  authBtn.addEventListener('click', () => {
+    const authCallback = () => {
+      if (gapi.auth2.getAuthInstance().isSignedIn.get()) {
+        const userAccessToken = gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token;
+        const devToolsElement = document.querySelector('.gdrive');
+        // set userAccessToken token to get file from Google Drive
+        devToolsElement.setAttribute('user-access-token', userAccessToken);
+        // set file id
+        devToolsElement.setAttribute('src', 'drive://0B0c67TI7mLzEMFNhSENiVDhHWEE');
+      } else {
+        console.log('User isn\'t signed in');
+      }
+    };
+    const checkAuth = callback => {
+      // use your own API key
+      const apiKey = 'HNprjzdIDWo0CAohrwv48e9W';
+      const scopes = [
+        'https://www.googleapis.com/auth/drive'
+      ];
+      const oAuthOptions = {
+        fetch_basic_profile: false,
+        client_id: '727494663884-kkcfepd74cgg6fu2f5c5v4ruh7b86ul8.apps.googleusercontent.com',
+        scope: scopes.join(' ')
+      };
+
+      gapi.load('client:auth2', () => {
+        gapi.client.setApiKey(apiKey);
+
+        // if we have authinstance yet, initialize
+        if (gapi.auth2.getAuthInstance())
+          return gapi.auth2.getAuthInstance().signIn(callback);
+
+        return gapi.auth2.init(oAuthOptions).then(callback);
+      });
+    };
+    checkAuth(authCallback);
+  });
+</script>
 </html>

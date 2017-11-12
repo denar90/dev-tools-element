@@ -31,26 +31,39 @@ class Utils {
   }
 }
 
-class GlobalScope {
+let scope = null;
+let userAccessToken = null;
+
+// @todo fixme, I'm global config overridden by each new custom element instance
+class Config {
   constructor() {
-    this.globalScope = null;
+    this.userAccessToken = null;
   }
 
-  set scope(value) {
-    return value;
+  set scope(val) {
+    scope = val;
   }
 
   get scope() {
-    if (!this.globalScope) throw new Error('set globalScope  first');
-    return this.globalScope;
+    if (!scope) throw new Error('set "scope" first');
+    return scope;
+  }
+
+  set userAccessToken(value) {
+    userAccessToken = value;
+  }
+
+  get userAccessToken() {
+    if (!userAccessToken) throw new Error('set userAccessToken first');
+    return userAccessToken;
   }
 }
 
-var devtoolsScope = new GlobalScope();
+var config = new Config();
 
-class ThirdPartyAssetLoader {
+class BaseTimelineLoader {
   constructor(url) {
-    this.scope = devtoolsScope.scope;
+    this.scope = config.scope;
     this.url = url;
   }
 
@@ -86,30 +99,93 @@ class ThirdPartyAssetLoader {
       console.log(e);
     }
   }
-
 }
 
-class GithubTimelineLoader extends ThirdPartyAssetLoader {
+class GithubTimelineLoader extends BaseTimelineLoader {
   constructor(url) {
     super(url);
     this.url.hostname = this.url.hostname.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
   }
 }
 
-class DropBoxTimelineLoader extends ThirdPartyAssetLoader {
+class DropBoxTimelineLoader extends BaseTimelineLoader {
   constructor(url) {
     super(url);
     this.url.hostname = this.url.hostname.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
+  }
+}
+
+class GDriveTimelineLoader extends BaseTimelineLoader {
+  constructor(url) {
+    super(url);
+    this.utils = new Utils();
+    this.userAccessToken = config.userAccessToken;
+
+    try {
+      if (url.protocol === 'drive:') {
+        this.timelineId = url.pathname.replace(/^\/+/, '');
+      }
+      if (url.hostname === 'drive.google.com') {
+        this.timelineId = url.pathname.match(/\b[0-9a-zA-Z]{5,40}\b/)[0];
+      }
+    } catch (e) {
+      // legacy URLs, without a drive:// prefix.
+      this.timelineId = url;
+    }
+  }
+
+  fetchTimelineAsset() {
+    return this.requestDriveFileMeta().then(response => {
+      document.title = `${response.originalFilename} | ${document.title}`;
+      const error = response.error;
+
+      if (error) {
+        const reasons = error.errors.map(e => e.reason);
+        let fileUnavailableStr = '';
+        fileUnavailableStr += reasons.includes('notFound') ? 'Confirm you have Edit permissions to the file. ' : '';
+        if (reasons.includes('authError')) {
+          fileUnavailableStr += 'Please sign in. ';
+        }
+        console.log(`${fileUnavailableStr} Drive API error: ${error.message}. (${reasons.join(', ')})`);
+        throw new Error(response.message, response.error);
+      }
+
+      if (!response.downloadUrl) {
+        throw new Error(response.message, response.error);
+      }
+
+      // alt=media forces file contents in response body.
+      this.url = new URL(`${response.downloadUrl}&alt=media`);
+
+      return BaseTimelineLoader.prototype.fetchTimelineAsset.apply(this, [this.setAuthHeaders.bind(this)]);
+    });
+  }
+
+  setAuthHeaders(xhr) {
+    xhr.setRequestHeader('Authorization', `Bearer ${this.userAccessToken}`);
+  }
+
+  requestDriveFileMeta() {
+    // if there's no this.timelineId then let's skip all this drive API stuff.
+    if (!this.timelineId) return;
+
+    const url = new URL(`https://www.googleapis.com/drive/v2/files/${this.timelineId}`);
+    url.searchParams.append('fields', 'version, downloadUrl, copyable, title, originalFilename, fileSize');
+
+    const headers = new Headers();
+    headers.append('Authorization', `Bearer ${this.userAccessToken}`);
+
+    return this.utils.fetch(url.toString(), {headers})
+      .then(resp => resp.json());
   }
 }
 
 class AssetLoader {
   loadAsset(url) {
-    //@todo add gdrive support
-    /*if (this.timelineProvider === 'drive')
-      return this.driveAssetLoaded.then(payload => payload);*/
-
-    if (url.hostname.match('github.com')) {
+    if (url.protocol === 'drive:' || url.hostname === 'drive.google.com') {
+      const gDriveTimelineLoader = new GDriveTimelineLoader(url);
+      return gDriveTimelineLoader.fetchTimelineAsset(url);
+    } else if (url.hostname.match('github.com')) {
       const githubTimelineLoader = new GithubTimelineLoader(url);
       return githubTimelineLoader.fetchTimelineAsset();
     } else if (url.hostname.match('www.dropbox.com')) {
@@ -123,7 +199,7 @@ class AssetLoader {
 
 class DevToolsMonkeyPatcher {
   constructor() {
-    this.scope = devtoolsScope.scope;
+    this.scope = config.scope;
     this.devtoolsBase = this.scope.document.getElementById('devtoolsscript').src.replace(/inspector\.js.*/, '');
     this.timelineLoader = new AssetLoader();
   }
@@ -218,12 +294,18 @@ class DevToolsMonkeyPatcher {
 
 class DevTools {
   constructor(options = {}) {
-    devtoolsScope.globalScope = options.scope || window;
-    this.scope = devtoolsScope.scope;
+    config.scope = options.scope || window;
+    config.userAccessToken = options.userAccessToken;
+    this.scope = config.scope;
     const devToolsMonkeyPatcher = new DevToolsMonkeyPatcher();
     devToolsMonkeyPatcher.patchDevTools();
 
     this.showTimelinePanel();
+  }
+
+  updateConfig(options = {}) {
+    config.scope = options.scope || config.scope;
+    config.userAccessToken = options.userAccessToken || config.scope;
   }
 
   loadTimelineDataFromUrl(timelineURL) {
@@ -255,12 +337,14 @@ customElements.define('dev-tools-element', class extends HTMLElement {
       // pass global params to iframe
       this._contentWindow.IframeDevTools = class IframeDevTools extends DevTools {};
       this._contentWindow.timelineURL = this.getAttribute('src');
+      this._contentWindow.userAccessToken = this.getAttribute('user-access-token');
       this._contentWindow.document.write(`
         <body>
           <script src="https://chrome-devtools-frontend.appspot.com/serve_file/@14fe0c24836876e87295c3bd65f8482cffd3de73/inspector.js" id="devtoolsscript"></script>
+          <script src="https://apis.google.com/js/client.js"></script>
           <script>
               document.addEventListener('DOMContentLoaded', () => {
-                window.devtools = new window.IframeDevTools({ scope: window });
+                window.devtools = new window.IframeDevTools({ scope: window, userAccessToken: window.userAccessToken });
                 if (this.timelineURL) {
                   window.devtools.loadTimelineDataFromUrl(this.timelineURL);
                 }
@@ -275,16 +359,26 @@ customElements.define('dev-tools-element', class extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return Object.keys(HTMLIFrameElement.prototype);
+    let attrs = Object.keys(HTMLIFrameElement.prototype);
+    attrs.push('user-access-token');
+    return attrs;
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
-    if (name == 'src') {
-      if (this._contentWindow && this._contentWindow.devtools) {
-        this._contentWindow.devtools.loadTimelineDataFromUrl(newValue);
+    if (this._contentWindow && this._contentWindow.devtools) {
+      switch (name) {
+        case 'user-access-token':
+          this._contentWindow.devtools.updateConfig({ userAccessToken: newValue });
+          break;
+        case 'src':
+          this._contentWindow.devtools.loadTimelineDataFromUrl(newValue);
+          break;
       }
       return;
     }
+
+    if (name === 'src') return;
+
     this._iframe.setAttribute(name, newValue);
   }
 
