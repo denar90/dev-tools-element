@@ -1,14 +1,20 @@
 import DevToolsMonkeyPatcher from './devtools-monkey-patcher';
-import devToolsScope from './devtools-scope';
+import config from './config';
 
 export default class DevTools {
   constructor(options = {}) {
-    devToolsScope.globalScope = options.scope || window;
-    this.scope = devToolsScope.scope;
+    config.scope = options.scope || window;
+    config.userAccessToken = options.userAccessToken;
+    this.scope = config.scope;
     const devToolsMonkeyPatcher = new DevToolsMonkeyPatcher();
     devToolsMonkeyPatcher.patchDevTools();
 
     this.showTimelinePanel();
+  }
+
+  updateConfig(options = {}) {
+    config.scope = options.scope || config.scope;
+    config.userAccessToken = options.userAccessToken || config.scope;
   }
 
   loadTimelineDataFromUrl(timelineURL) {

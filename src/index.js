@@ -10,12 +10,14 @@ customElements.define('dev-tools-element', class extends HTMLElement {
       // pass global params to iframe
       this._contentWindow.IframeDevTools = class IframeDevTools extends DevTools {};
       this._contentWindow.timelineURL = this.getAttribute('src');
+      this._contentWindow.userAccessToken = this.getAttribute('user-access-token');
       this._contentWindow.document.write(`
         <body>
           <script src="https://chrome-devtools-frontend.appspot.com/serve_file/@14fe0c24836876e87295c3bd65f8482cffd3de73/inspector.js" id="devtoolsscript"></script>
+          <script src="https://apis.google.com/js/client.js"></script>
           <script>
               document.addEventListener('DOMContentLoaded', () => {
-                window.devtools = new window.IframeDevTools({ scope: window });
+                window.devtools = new window.IframeDevTools({ scope: window, userAccessToken: window.userAccessToken });
                 if (this.timelineURL) {
                   window.devtools.loadTimelineDataFromUrl(this.timelineURL);
                 }
@@ -30,16 +32,26 @@ customElements.define('dev-tools-element', class extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return Object.keys(HTMLIFrameElement.prototype);
+    const attrs = Object.keys(HTMLIFrameElement.prototype);
+    attrs.push('user-access-token');
+    return attrs;
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
-    if (name == 'src') {
-      if (this._contentWindow && this._contentWindow.devtools) {
-        this._contentWindow.devtools.loadTimelineDataFromUrl(newValue);
+    if (this._contentWindow && this._contentWindow.devtools) {
+      switch (name) {
+        case 'user-access-token':
+          this._contentWindow.devtools.updateConfig({ userAccessToken: newValue });
+          break;
+        case 'src':
+          this._contentWindow.devtools.loadTimelineDataFromUrl(newValue);
+          break;
       }
       return;
     }
+
+    if (name === 'src') return;
+
     this._iframe.setAttribute(name, newValue);
   }
 
