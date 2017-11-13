@@ -6,7 +6,7 @@
   "scripts": {
     "build": "rollup --config",
     "test": "npm run lint",
-    "lint": "[ \"$CI\" = true ] && eslint src --quiet -f codeframe . || eslint src"
+    "lint": "[ \"$CI\" = true ] && eslint --quiet -f codeframe src || eslint src"
   },
   "keywords": [
     "web-components",

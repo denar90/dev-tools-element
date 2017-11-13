@@ -15,10 +15,10 @@ export default class BaseTimelineLoader {
       url, addRequestHeaders: addRequestHeaders.bind(this), method, body,
       onprogress: this.updateProgress.bind(this),
     }, true)
-    .then(xhr => xhr.responseText)
-    .catch(error => {
-      console.log(error);
-    });
+      .then(xhr => xhr.responseText)
+      .catch(error => {
+        console.log(error);
+      });
   }
 
   updateProgress(evt) {
