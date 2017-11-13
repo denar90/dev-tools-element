@@ -31,39 +31,9 @@ class Utils {
   }
 }
 
-let scope = null;
-let userAccessToken = null;
-
-// @todo fixme, I'm global config overridden by each new custom element instance
-class Config {
-  constructor() {
-    this.userAccessToken = null;
-  }
-
-  set scope(val) {
-    scope = val;
-  }
-
-  get scope() {
-    if (!scope) throw new Error('set "scope" first');
-    return scope;
-  }
-
-  set userAccessToken(value) {
-    userAccessToken = value;
-  }
-
-  get userAccessToken() {
-    if (!userAccessToken) throw new Error('set userAccessToken first');
-    return userAccessToken;
-  }
-}
-
-var config = new Config();
-
 class BaseTimelineLoader {
-  constructor(url) {
-    this.scope = config.scope;
+  constructor(url, devToolsConfig) {
+    this.scope = devToolsConfig.scope;
     this.url = url;
   }
 
@@ -76,10 +46,10 @@ class BaseTimelineLoader {
       url, addRequestHeaders: addRequestHeaders.bind(this), method, body,
       onprogress: this.updateProgress.bind(this),
     }, true)
-      .then(xhr => xhr.responseText)
-      .catch(error => {
-        console.log(error);
-      });
+    .then(xhr => xhr.responseText)
+    .catch(error => {
+      console.log(error);
+    });
   }
 
   updateProgress(evt) {
@@ -102,35 +72,35 @@ class BaseTimelineLoader {
 }
 
 class GithubTimelineLoader extends BaseTimelineLoader {
-  constructor(url) {
-    super(url);
+  constructor(...args) {
+    super(...args);
     this.url.hostname = this.url.hostname.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
   }
 }
 
 class DropBoxTimelineLoader extends BaseTimelineLoader {
-  constructor(url) {
-    super(url);
+  constructor(...args) {
+    super(...args);
     this.url.hostname = this.url.hostname.replace('www.dropbox.com', 'dl.dropboxusercontent.com');
   }
 }
 
 class GDriveTimelineLoader extends BaseTimelineLoader {
-  constructor(url) {
-    super(url);
+  constructor(...args) {
+    super(...args);
     this.utils = new Utils();
-    this.userAccessToken = config.userAccessToken;
+    this.userAccessToken = devToolsConfig.userAccessToken;
 
     try {
-      if (url.protocol === 'drive:') {
-        this.timelineId = url.pathname.replace(/^\/+/, '');
+      if (this.url.protocol === 'drive:') {
+        this.timelineId = this.url.pathname.replace(/^\/+/, '');
       }
-      if (url.hostname === 'drive.google.com') {
-        this.timelineId = url.pathname.match(/\b[0-9a-zA-Z]{5,40}\b/)[0];
+      if (this.url.hostname === 'drive.google.com') {
+        this.timelineId = this.url.pathname.match(/\b[0-9a-zA-Z]{5,40}\b/)[0];
       }
     } catch (e) {
       // legacy URLs, without a drive:// prefix.
-      this.timelineId = url;
+      this.timelineId = this.url;
     }
   }
 
@@ -183,13 +153,13 @@ class GDriveTimelineLoader extends BaseTimelineLoader {
 class AssetLoader {
   loadAsset(url) {
     if (url.protocol === 'drive:' || url.hostname === 'drive.google.com') {
-      const gDriveTimelineLoader = new GDriveTimelineLoader(url);
-      return gDriveTimelineLoader.fetchTimelineAsset(url);
+      const gDriveTimelineLoader = new GDriveTimelineLoader(url, devToolsConfig);
+      return gDriveTimelineLoader.fetchTimelineAsset();
     } else if (url.hostname.match('github.com')) {
-      const githubTimelineLoader = new GithubTimelineLoader(url);
+      const githubTimelineLoader = new GithubTimelineLoader(url, devToolsConfig);
       return githubTimelineLoader.fetchTimelineAsset();
     } else if (url.hostname.match('www.dropbox.com')) {
-      const dropboxTimelineLoader = new DropBoxTimelineLoader(url);
+      const dropboxTimelineLoader = new DropBoxTimelineLoader(url, devToolsConfig);
       return dropboxTimelineLoader.fetchTimelineAsset();
     } else {
       return Promise.reject();
@@ -199,7 +169,7 @@ class AssetLoader {
 
 class DevToolsMonkeyPatcher {
   constructor() {
-    this.scope = config.scope;
+    this.scope = devToolsConfig.scope;
     this.devtoolsBase = this.scope.document.getElementById('devtoolsscript').src.replace(/inspector\.js.*/, '');
     this.timelineLoader = new AssetLoader();
   }
@@ -288,15 +258,47 @@ class DevToolsMonkeyPatcher {
       return this.origLoadResourcePromise(redirectedURL.toString());
     }
 
-    return this.timelineLoader.loadAsset(url, this.scope);
+    return this.timelineLoader.loadAsset(url, devToolsConfig);
   }
 }
 
+let scope = null;
+let userAccessToken = null;
+
+// @todo fixme, I'm global config overridden by each new custom element instance
+class Config {
+  constructor() {
+    this.userAccessToken = null;
+  }
+
+  set scope(val) {
+    scope = val;
+  }
+
+  get scope() {
+    if (!scope) throw new Error('set "scope" first');
+    return scope;
+  }
+
+  set userAccessToken(value) {
+    userAccessToken = value;
+  }
+
+  get userAccessToken() {
+    if (!userAccessToken) throw new Error('set userAccessToken first');
+    return userAccessToken;
+  }
+}
+
+let devToolsConfig = null;
+
 class DevTools {
   constructor(options = {}) {
-    config.scope = options.scope || window;
-    config.userAccessToken = options.userAccessToken;
-    this.scope = config.scope;
+    devToolsConfig = new Config();
+    devToolsConfig.scope = options.scope || window;
+    devToolsConfig.userAccessToken = options.userAccessToken;
+    this.scope = devToolsConfig.scope;
+
     const devToolsMonkeyPatcher = new DevToolsMonkeyPatcher();
     devToolsMonkeyPatcher.patchDevTools();
 
@@ -304,8 +306,8 @@ class DevTools {
   }
 
   updateConfig(options = {}) {
-    config.scope = options.scope || config.scope;
-    config.userAccessToken = options.userAccessToken || config.scope;
+    devToolsConfig.scope = options.scope || devToolsConfig.scope;
+    devToolsConfig.userAccessToken = options.userAccessToken || devToolsConfig.scope;
   }
 
   loadTimelineDataFromUrl(timelineURL) {
@@ -359,7 +361,7 @@ customElements.define('dev-tools-element', class extends HTMLElement {
   }
 
   static get observedAttributes() {
-    let attrs = Object.keys(HTMLIFrameElement.prototype);
+    const attrs = Object.keys(HTMLIFrameElement.prototype);
     attrs.push('user-access-token');
     return attrs;
   }

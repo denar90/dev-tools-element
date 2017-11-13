@@ -1,9 +1,8 @@
 import Utils from '../utils';
-import config from '../config';
 
 export default class BaseTimelineLoader {
-  constructor(url) {
-    this.scope = config.scope;
+  constructor(url, devToolsConfig) {
+    this.scope = devToolsConfig.scope;
     this.url = url;
   }
 
@@ -16,10 +15,10 @@ export default class BaseTimelineLoader {
       url, addRequestHeaders: addRequestHeaders.bind(this), method, body,
       onprogress: this.updateProgress.bind(this),
     }, true)
-      .then(xhr => xhr.responseText)
-      .catch(error => {
-        console.log(error);
-      });
+    .then(xhr => xhr.responseText)
+    .catch(error => {
+      console.log(error);
+    });
   }
 
   updateProgress(evt) {

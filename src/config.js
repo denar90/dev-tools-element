@@ -2,7 +2,7 @@ let scope = null;
 let userAccessToken = null;
 
 // @todo fixme, I'm global config overridden by each new custom element instance
-class Config {
+export default class Config {
   constructor() {
     this.userAccessToken = null;
   }
@@ -25,5 +25,3 @@ class Config {
     return userAccessToken;
   }
 }
-
-export default new Config();

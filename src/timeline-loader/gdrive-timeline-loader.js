@@ -1,23 +1,23 @@
 import Utils from '../utils';
-import config from '../config';
+import { devToolsConfig } from '../dev-tools';
 import BaseTimelineLoader from './base-timeline-loader';
 
 export default class GDriveTimelineLoader extends BaseTimelineLoader {
-  constructor(url) {
-    super(url);
+  constructor(...args) {
+    super(...args);
     this.utils = new Utils();
-    this.userAccessToken = config.userAccessToken;
+    this.userAccessToken = devToolsConfig.userAccessToken;
 
     try {
-      if (url.protocol === 'drive:') {
-        this.timelineId = url.pathname.replace(/^\/+/, '');
+      if (this.url.protocol === 'drive:') {
+        this.timelineId = this.url.pathname.replace(/^\/+/, '');
       }
-      if (url.hostname === 'drive.google.com') {
-        this.timelineId = url.pathname.match(/\b[0-9a-zA-Z]{5,40}\b/)[0];
+      if (this.url.hostname === 'drive.google.com') {
+        this.timelineId = this.url.pathname.match(/\b[0-9a-zA-Z]{5,40}\b/)[0];
       }
     } catch (e) {
       // legacy URLs, without a drive:// prefix.
-      this.timelineId = url;
+      this.timelineId = this.url;
     }
   }
 

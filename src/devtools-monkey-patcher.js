@@ -1,9 +1,9 @@
 import TimelineLoader from './timeline-loader';
-import config from './config';
+import { devToolsConfig } from './dev-tools';
 
 export default class DevToolsMonkeyPatcher {
   constructor() {
-    this.scope = config.scope;
+    this.scope = devToolsConfig.scope;
     this.devtoolsBase = this.scope.document.getElementById('devtoolsscript').src.replace(/inspector\.js.*/, '');
     this.timelineLoader = new TimelineLoader();
   }
@@ -92,6 +92,6 @@ export default class DevToolsMonkeyPatcher {
       return this.origLoadResourcePromise(redirectedURL.toString());
     }
 
-    return this.timelineLoader.loadAsset(url, this.scope);
+    return this.timelineLoader.loadAsset(url, devToolsConfig);
   }
 }

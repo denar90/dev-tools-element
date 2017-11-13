@@ -1,11 +1,15 @@
 import DevToolsMonkeyPatcher from './devtools-monkey-patcher';
-import config from './config';
+import Config from './config';
 
-export default class DevTools {
+let devToolsConfig = null;
+
+class DevTools {
   constructor(options = {}) {
-    config.scope = options.scope || window;
-    config.userAccessToken = options.userAccessToken;
-    this.scope = config.scope;
+    devToolsConfig = new Config();
+    devToolsConfig.scope = options.scope || window;
+    devToolsConfig.userAccessToken = options.userAccessToken;
+    this.scope = devToolsConfig.scope;
+
     const devToolsMonkeyPatcher = new DevToolsMonkeyPatcher();
     devToolsMonkeyPatcher.patchDevTools();
 
@@ -13,8 +17,8 @@ export default class DevTools {
   }
 
   updateConfig(options = {}) {
-    config.scope = options.scope || config.scope;
-    config.userAccessToken = options.userAccessToken || config.scope;
+    devToolsConfig.scope = options.scope || devToolsConfig.scope;
+    devToolsConfig.userAccessToken = options.userAccessToken || devToolsConfig.scope;
   }
 
   loadTimelineDataFromUrl(timelineURL) {
@@ -35,3 +39,8 @@ export default class DevTools {
     this.scope.UI.inspectorView.showPanel('timeline');
   }
 }
+
+export {
+  DevTools,
+  devToolsConfig
+};
