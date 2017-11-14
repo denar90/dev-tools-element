@@ -29,6 +29,19 @@ Attributes:
 
  - `src` - path to timeline json trace, can be from `dropbox`, `github`, `google drive`
  - `user-access-token` - user access token for loading timeline trace from google drive 
+ 
+ Events:
+ 
+ - 'DevToolsReady' - event triggered when Dev Tools loaded and ready to use.
+ 
+ Example:
+ 
+```js
+  const devToolsElement = document.querySelector('dev-tools-element');
+  devToolsElement.addEventListener('DevToolsReady', () => {
+    console.log('Dev Tools custom element is ready!!!');
+  });
+```
 
 ### Usage with Google Drive resources
 

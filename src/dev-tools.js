@@ -13,7 +13,7 @@ class DevTools {
     const devToolsMonkeyPatcher = new DevToolsMonkeyPatcher();
     devToolsMonkeyPatcher.patchDevTools();
 
-    this.showTimelinePanel();
+    this.observeIdle();
   }
 
   updateConfig(options = {}) {
@@ -30,13 +30,26 @@ class DevTools {
     this.scope.Timeline.TimelinePanel.instance()._loadFromURL(timelineURL);
   }
 
-  showTimelinePanel() {
-    const plzRepeat = () => setTimeout(() => this.showTimelinePanel(), 100);
-    if (typeof this.scope.UI === 'undefined' ||
-      typeof this.scope.UI.inspectorView === 'undefined'
+  observeIdle() {
+    const plzRepeat = () => setTimeout(() => this.observeIdle(), 100);
+    if (typeof this.scope.Timeline === 'undefined' ||
+      typeof this.scope.Timeline.TimelinePanel === 'undefined' ||
+      typeof this.scope.Timeline.TimelinePanel.State === 'undefined' ||
+      this.scope.Timeline.TimelinePanel.instance()._state !== this.scope.Timeline.TimelinePanel.State.Idle
     ) return plzRepeat();
 
+    this.showTimelinePanel();
+    this.dispatchEvent('DevToolsReadyInFrame');
+  }
+
+  showTimelinePanel() {
     this.scope.UI.inspectorView.showPanel('timeline');
+  }
+
+  dispatchEvent(eventName) {
+    const event = document.createEvent('Event');
+    event.initEvent(eventName, true, true);
+    this.scope.document.dispatchEvent(event);
   }
 }
 

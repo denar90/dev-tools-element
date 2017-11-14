@@ -46,10 +46,10 @@ class BaseTimelineLoader {
       url, addRequestHeaders: addRequestHeaders.bind(this), method, body,
       onprogress: this.updateProgress.bind(this),
     }, true)
-    .then(xhr => xhr.responseText)
-    .catch(error => {
-      console.log(error);
-    });
+      .then(xhr => xhr.responseText)
+      .catch(error => {
+        console.log(error);
+      });
   }
 
   updateProgress(evt) {
@@ -302,7 +302,7 @@ class DevTools {
     const devToolsMonkeyPatcher = new DevToolsMonkeyPatcher();
     devToolsMonkeyPatcher.patchDevTools();
 
-    this.showTimelinePanel();
+    this.observeIdle();
   }
 
   updateConfig(options = {}) {
@@ -319,13 +319,26 @@ class DevTools {
     this.scope.Timeline.TimelinePanel.instance()._loadFromURL(timelineURL);
   }
 
-  showTimelinePanel() {
-    const plzRepeat = () => setTimeout(() => this.showTimelinePanel(), 100);
-    if (typeof this.scope.UI === 'undefined' ||
-      typeof this.scope.UI.inspectorView === 'undefined'
+  observeIdle() {
+    const plzRepeat = () => setTimeout(() => this.observeIdle(), 100);
+    if (typeof this.scope.Timeline === 'undefined' ||
+      typeof this.scope.Timeline.TimelinePanel === 'undefined' ||
+      typeof this.scope.Timeline.TimelinePanel.State === 'undefined' ||
+      this.scope.Timeline.TimelinePanel.instance()._state !== this.scope.Timeline.TimelinePanel.State.Idle
     ) return plzRepeat();
 
+    this.showTimelinePanel();
+    this.dispatchEvent('DevToolsReadyInFrame');
+  }
+
+  showTimelinePanel() {
     this.scope.UI.inspectorView.showPanel('timeline');
+  }
+
+  dispatchEvent(eventName) {
+    const event = document.createEvent('Event');
+    event.initEvent(eventName, true, true);
+    this.scope.document.dispatchEvent(event);
   }
 }
 
@@ -347,8 +360,8 @@ customElements.define('dev-tools-element', class extends HTMLElement {
           <script>
               document.addEventListener('DOMContentLoaded', () => {
                 window.devtools = new window.IframeDevTools({ scope: window, userAccessToken: window.userAccessToken });
-                if (this.timelineURL) {
-                  window.devtools.loadTimelineDataFromUrl(this.timelineURL);
+                if (window.timelineURL) {
+                  window.devtools.loadTimelineDataFromUrl(window.timelineURL);
                 }
               });
               const DOMContentLoadedEvent = document.createEvent('Event');
@@ -357,6 +370,8 @@ customElements.define('dev-tools-element', class extends HTMLElement {
           </script>
         </body>
       `);
+
+      this._contentWindow.document.addEventListener('DevToolsReadyInFrame', () => this.handleDevToolsReadyInFrame());
     };
   }
 
@@ -387,6 +402,10 @@ customElements.define('dev-tools-element', class extends HTMLElement {
   connectedCallback() {
     if (!this.closest(':root')) return;
     this.append(this._iframe);
+  }
+
+  handleDevToolsReadyInFrame() {
+    this.dispatchEvent(new CustomEvent('DevToolsReady'));
   }
 });
 

@@ -18,8 +18,8 @@ customElements.define('dev-tools-element', class extends HTMLElement {
           <script>
               document.addEventListener('DOMContentLoaded', () => {
                 window.devtools = new window.IframeDevTools({ scope: window, userAccessToken: window.userAccessToken });
-                if (this.timelineURL) {
-                  window.devtools.loadTimelineDataFromUrl(this.timelineURL);
+                if (window.timelineURL) {
+                  window.devtools.loadTimelineDataFromUrl(window.timelineURL);
                 }
               });
               const DOMContentLoadedEvent = document.createEvent('Event');
@@ -28,6 +28,8 @@ customElements.define('dev-tools-element', class extends HTMLElement {
           </script>
         </body>
       `);
+
+      this._contentWindow.document.addEventListener('DevToolsReadyInFrame', () => this.handleDevToolsReadyInFrame());
     };
   }
 
@@ -58,5 +60,9 @@ customElements.define('dev-tools-element', class extends HTMLElement {
   connectedCallback() {
     if (!this.closest(':root')) return;
     this.append(this._iframe);
+  }
+
+  handleDevToolsReadyInFrame() {
+    this.dispatchEvent(new CustomEvent('DevToolsReady'));
   }
 });
