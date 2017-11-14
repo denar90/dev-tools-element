@@ -5,7 +5,7 @@
   <script src="./index.js"></script>
 </head>
   <h2>Github/Dropbox source</h2>
-  <dev-tools-element src="https://www.dropbox.com/s/s1n8m8n5oddgoxx/timeline-docs.json?dl=0" width="800" height="500"></dev-tools-element>
+  <dev-tools-element class="default-dev-tools" src="https://www.dropbox.com/s/s1n8m8n5oddgoxx/timeline-docs.json?dl=0" width="800" height="500"></dev-tools-element>
   <hr/>
   <h2>Google Drive source</h2>
   <button class="auth-btn">Auth to Google and show trace</button>
@@ -52,6 +52,13 @@
       });
     };
     checkAuth(authCallback);
+  });
+
+
+  // ready event demo
+  const devTools = document.querySelector('.default-dev-tools');
+  devTools.addEventListener('DevToolsReady', () => {
+    console.log('Dev Tools custom element is ready!!!');
   });
 </script>
 </html>
