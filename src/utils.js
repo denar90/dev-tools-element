@@ -26,4 +26,10 @@ export default class Utils {
       xhr.send(body);
     });
   }
+
+  dispatchEvent(eventName, dispatcher) {
+    const event = document.createEvent('Event');
+    event.initEvent(eventName, true, true);
+    dispatcher.dispatchEvent(event);
+  }
 }

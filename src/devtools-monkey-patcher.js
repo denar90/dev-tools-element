@@ -1,9 +1,11 @@
 import TimelineLoader from './timeline-loader';
 import { devToolsConfig } from './dev-tools';
+import Utils from './utils';
 
 export default class DevToolsMonkeyPatcher {
   constructor() {
     this.scope = devToolsConfig.scope;
+    this.utils = new Utils();
     this.devtoolsBase = this.scope.document.getElementById('devtoolsscript').src.replace(/inspector\.js.*/, '');
     this.timelineLoader = new TimelineLoader();
   }
@@ -92,6 +94,9 @@ export default class DevToolsMonkeyPatcher {
       return this.origLoadResourcePromise(redirectedURL.toString());
     }
 
-    return this.timelineLoader.loadAsset(url, devToolsConfig);
+    return this.timelineLoader.loadAsset(url, devToolsConfig).then(response => {
+      this.utils.dispatchEvent('DevToolsTimelineLoadedInFrame', this.scope.document);
+      return response;
+    });
   }
 }

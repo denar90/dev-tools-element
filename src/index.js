@@ -30,6 +30,7 @@ customElements.define('dev-tools-element', class extends HTMLElement {
       `);
 
       this._contentWindow.document.addEventListener('DevToolsReadyInFrame', () => this.handleDevToolsReadyInFrame());
+      this._contentWindow.document.addEventListener('DevToolsTimelineLoadedInFrame', () => this.handleDevToolsTimelineLoadedInFrame());
     };
   }
 
@@ -64,5 +65,9 @@ customElements.define('dev-tools-element', class extends HTMLElement {
 
   handleDevToolsReadyInFrame() {
     this.dispatchEvent(new CustomEvent('DevToolsReady'));
+  }
+
+  handleDevToolsTimelineLoadedInFrame() {
+    this.dispatchEvent(new CustomEvent('DevToolsTimelineLoaded'));
   }
 });

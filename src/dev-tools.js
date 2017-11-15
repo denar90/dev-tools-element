@@ -1,5 +1,6 @@
 import DevToolsMonkeyPatcher from './devtools-monkey-patcher';
 import Config from './config';
+import Utils from './utils';
 
 let devToolsConfig = null;
 
@@ -9,6 +10,7 @@ class DevTools {
     devToolsConfig.scope = options.scope || window;
     devToolsConfig.userAccessToken = options.userAccessToken;
     this.scope = devToolsConfig.scope;
+    this.utils = new Utils();
 
     const devToolsMonkeyPatcher = new DevToolsMonkeyPatcher();
     devToolsMonkeyPatcher.patchDevTools();
@@ -39,17 +41,11 @@ class DevTools {
     ) return plzRepeat();
 
     this.showTimelinePanel();
-    this.dispatchEvent('DevToolsReadyInFrame');
+    this.utils.dispatchEvent('DevToolsReadyInFrame', this.scope.document);
   }
 
   showTimelinePanel() {
     this.scope.UI.inspectorView.showPanel('timeline');
-  }
-
-  dispatchEvent(eventName) {
-    const event = document.createEvent('Event');
-    event.initEvent(eventName, true, true);
-    this.scope.document.dispatchEvent(event);
   }
 }
 
