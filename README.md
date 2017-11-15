@@ -11,7 +11,7 @@ Inspired by amazing work done by @paulirish for [timeline-viewer](https://github
 
 ## Install
 
-Install the component using [Npm](https://www.npmjs.com/):
+Install the component using [npm](https://www.npmjs.com/):
 
 ```sh
 $ npm install dev-tools-element --save
@@ -30,16 +30,21 @@ Attributes:
  - `src` - path to timeline json trace, can be from `dropbox`, `github`, `google drive`
  - `user-access-token` - user access token for loading timeline trace from google drive 
  
- Events:
+Events:
  
- - 'DevToolsReady' - event triggered when Dev Tools loaded and ready to use.
+ - `DevToolsReady` - event triggered when Dev Tools loaded and ready to use.
+ - `DevToolsTimelineLoaded` - event triggered when timeline trace for Dev Tools custom element is loaded.
  
- Example:
+Example:
  
 ```js
-  const devToolsElement = document.querySelector('dev-tools-element');
-  devToolsElement.addEventListener('DevToolsReady', () => {
+  const devTools = document.querySelector('.default-dev-tools');
+  devTools.addEventListener('DevToolsReady', () => {
     console.log('Dev Tools custom element is ready!!!');
+  });
+
+  devTools.addEventListener('DevToolsTimelineLoaded', () => {
+    console.log('Timeline trace for Dev Tools custom element is loaded!!!');
   });
 ```
 

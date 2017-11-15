@@ -29,6 +29,12 @@ class Utils {
       xhr.send(body);
     });
   }
+
+  dispatchEvent(eventName, dispatcher) {
+    const event = document.createEvent('Event');
+    event.initEvent(eventName, true, true);
+    dispatcher.dispatchEvent(event);
+  }
 }
 
 class BaseTimelineLoader {
@@ -170,6 +176,7 @@ class AssetLoader {
 class DevToolsMonkeyPatcher {
   constructor() {
     this.scope = devToolsConfig.scope;
+    this.utils = new Utils();
     this.devtoolsBase = this.scope.document.getElementById('devtoolsscript').src.replace(/inspector\.js.*/, '');
     this.timelineLoader = new AssetLoader();
   }
@@ -258,7 +265,10 @@ class DevToolsMonkeyPatcher {
       return this.origLoadResourcePromise(redirectedURL.toString());
     }
 
-    return this.timelineLoader.loadAsset(url, devToolsConfig);
+    return this.timelineLoader.loadAsset(url, devToolsConfig).then(response => {
+      this.utils.dispatchEvent('DevToolsTimelineLoadedInFrame', this.scope.document);
+      return response;
+    });
   }
 }
 
@@ -298,6 +308,7 @@ class DevTools {
     devToolsConfig.scope = options.scope || window;
     devToolsConfig.userAccessToken = options.userAccessToken;
     this.scope = devToolsConfig.scope;
+    this.utils = new Utils();
 
     const devToolsMonkeyPatcher = new DevToolsMonkeyPatcher();
     devToolsMonkeyPatcher.patchDevTools();
@@ -328,17 +339,11 @@ class DevTools {
     ) return plzRepeat();
 
     this.showTimelinePanel();
-    this.dispatchEvent('DevToolsReadyInFrame');
+    this.utils.dispatchEvent('DevToolsReadyInFrame', this.scope.document);
   }
 
   showTimelinePanel() {
     this.scope.UI.inspectorView.showPanel('timeline');
-  }
-
-  dispatchEvent(eventName) {
-    const event = document.createEvent('Event');
-    event.initEvent(eventName, true, true);
-    this.scope.document.dispatchEvent(event);
   }
 }
 
@@ -372,6 +377,7 @@ customElements.define('dev-tools-element', class extends HTMLElement {
       `);
 
       this._contentWindow.document.addEventListener('DevToolsReadyInFrame', () => this.handleDevToolsReadyInFrame());
+      this._contentWindow.document.addEventListener('DevToolsTimelineLoadedInFrame', () => this.handleDevToolsTimelineLoadedInFrame());
     };
   }
 
@@ -406,6 +412,10 @@ customElements.define('dev-tools-element', class extends HTMLElement {
 
   handleDevToolsReadyInFrame() {
     this.dispatchEvent(new CustomEvent('DevToolsReady'));
+  }
+
+  handleDevToolsTimelineLoadedInFrame() {
+    this.dispatchEvent(new CustomEvent('DevToolsTimelineLoaded'));
   }
 });
 
