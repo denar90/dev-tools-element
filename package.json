@@ -4,8 +4,11 @@
   "description": "DevTools custom element works with public github urls, github gists",
   "main": "src/index.js",
   "scripts": {
-    "build": "rollup --config",
-    "test": "npm run lint",
+    "build": "rollup --config && cp demo/index.js cypress/web/",
+    "test": "yarn run lint && yarn run cypress-test",
+    "cypress-test": "yarn run serve & yarn run cypress-run",
+    "cypress-run": "cypress run --browser chrome",
+    "serve": "kill $(lsof -t -i:8080) & http-server cypress/web -a localhost -p 8080 -s",
     "lint": "[ \"$CI\" = true ] && eslint --quiet -f codeframe src || eslint src"
   },
   "keywords": [
@@ -21,7 +24,9 @@
   ],
   "license": "Apache-2.0",
   "devDependencies": {
+    "cypress": "^1.0.3",
     "eslint": "^4.10.0",
+    "http-server": "^0.10.0",
     "rollup": "~0.37.0",
     "rollup-plugin-node-resolve": "^2.0.0"
   }

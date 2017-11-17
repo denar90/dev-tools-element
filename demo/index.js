@@ -278,7 +278,6 @@ class DevToolsMonkeyPatcher {
   }
 }
 
-// @todo fixme, I'm global config overridden by each new custom element instance
 class Config {
   constructor() {
     this._scope = null;
@@ -315,6 +314,7 @@ class DevTools {
     const devToolsMonkeyPatcher = new DevToolsMonkeyPatcher(this.devToolsConfig);
     devToolsMonkeyPatcher.patchDevTools();
 
+    this.showTimelinePanel();
     this.observeIdle();
   }
 
@@ -340,11 +340,14 @@ class DevTools {
       this.scope.Timeline.TimelinePanel.instance()._state !== this.scope.Timeline.TimelinePanel.State.Idle
     ) return plzRepeat();
 
-    this.showTimelinePanel();
     this.utils.dispatchEvent('DevToolsReadyInFrame', this.scope.document);
   }
 
   showTimelinePanel() {
+    const plzRepeat = () => setTimeout(() => this.showTimelinePanel(), 100);
+    if (typeof this.scope.UI === 'undefined' ||
+      typeof this.scope.UI.inspectorView === 'undefined'
+    ) return plzRepeat();
     this.scope.UI.inspectorView.showPanel('timeline');
   }
 }
