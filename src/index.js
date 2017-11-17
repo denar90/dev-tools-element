@@ -1,4 +1,4 @@
-import { DevTools } from './dev-tools';
+import DevTools from './dev-tools';
 
 customElements.define('dev-tools-element', class extends HTMLElement {
   constructor() {

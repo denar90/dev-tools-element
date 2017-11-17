@@ -2,8 +2,10 @@ import Utils from '../utils';
 
 export default class BaseTimelineLoader {
   constructor(url, devToolsConfig) {
-    this.scope = devToolsConfig.scope;
+    this.utils = new Utils();
     this.url = url;
+    this.devToolsConfig = devToolsConfig;
+    this.scope = this.devToolsConfig.scope;
   }
 
   fetchTimelineAsset(addRequestHeaders = Function.prototype, method = 'GET', body) {

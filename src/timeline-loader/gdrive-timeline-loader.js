@@ -1,12 +1,9 @@
-import Utils from '../utils';
-import { devToolsConfig } from '../dev-tools';
 import BaseTimelineLoader from './base-timeline-loader';
 
 export default class GDriveTimelineLoader extends BaseTimelineLoader {
   constructor(...args) {
     super(...args);
-    this.utils = new Utils();
-    this.userAccessToken = devToolsConfig.userAccessToken;
+    this.userAccessToken = this.devToolsConfig.userAccessToken;
 
     try {
       if (this.url.protocol === 'drive:') {
