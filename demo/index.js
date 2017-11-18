@@ -365,7 +365,7 @@ customElements.define('dev-tools-element', class extends HTMLElement {
       this._contentWindow.userAccessToken = this.getAttribute('user-access-token');
       this._contentWindow.document.write(`
         <body>
-          <script src="https://chrome-devtools-frontend.appspot.com/serve_file/@14fe0c24836876e87295c3bd65f8482cffd3de73/inspector.js" id="devtoolsscript"></script>
+          <script src="https://chrome-devtools-frontend.appspot.com/serve_file/@14fe0c24836876e87295c3bd65f8482cffd3de73/inspector.js?${Math.random()}" id="devtoolsscript"></script>
           <script src="https://apis.google.com/js/client.js"></script>
           <script>
               document.addEventListener('DOMContentLoaded', () => {
