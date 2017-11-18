@@ -8,7 +8,7 @@
     "test": "yarn run lint && npm run build && yarn run cypress-test",
     "cypress-test": "yarn run serve & yarn run cypress-run",
     "cypress-run": "cypress run --browser chrome",
-    "serve": "kill $(lsof -t -i:8000) & http-server cypress/web -a localhost -p 8000 -s",
+    "serve": "kill $(lsof -t -i:8080) & http-server cypress/web -a localhost -p 8080 -s",
     "lint": "[ \"$CI\" = true ] && eslint --quiet -f codeframe src || eslint src"
   },
   "keywords": [
