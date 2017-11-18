@@ -2,25 +2,24 @@ import DevToolsMonkeyPatcher from './devtools-monkey-patcher';
 import Config from './config';
 import Utils from './utils';
 
-let devToolsConfig = null;
-
-class DevTools {
+export default class DevTools {
   constructor(options = {}) {
-    devToolsConfig = new Config();
-    devToolsConfig.scope = options.scope || window;
-    devToolsConfig.userAccessToken = options.userAccessToken;
-    this.scope = devToolsConfig.scope;
+    this.devToolsConfig = new Config();
+    this.devToolsConfig.scope = options.scope || window;
+    this.devToolsConfig.userAccessToken = options.userAccessToken;
+    this.scope = this.devToolsConfig.scope;
     this.utils = new Utils();
 
-    const devToolsMonkeyPatcher = new DevToolsMonkeyPatcher();
+    const devToolsMonkeyPatcher = new DevToolsMonkeyPatcher(this.devToolsConfig);
     devToolsMonkeyPatcher.patchDevTools();
 
+    this.showTimelinePanel();
     this.observeIdle();
   }
 
   updateConfig(options = {}) {
-    devToolsConfig.scope = options.scope || devToolsConfig.scope;
-    devToolsConfig.userAccessToken = options.userAccessToken || devToolsConfig.scope;
+    this.devToolsConfig.scope = options.scope || this.devToolsConfig.scope;
+    this.devToolsConfig.userAccessToken = options.userAccessToken || this.devToolsConfig.userAccessToken;
   }
 
   loadTimelineDataFromUrl(timelineURL) {
@@ -40,16 +39,14 @@ class DevTools {
       this.scope.Timeline.TimelinePanel.instance()._state !== this.scope.Timeline.TimelinePanel.State.Idle
     ) return plzRepeat();
 
-    this.showTimelinePanel();
     this.utils.dispatchEvent('DevToolsReadyInFrame', this.scope.document);
   }
 
   showTimelinePanel() {
+    const plzRepeat = () => setTimeout(() => this.showTimelinePanel(), 100);
+    if (typeof this.scope.UI === 'undefined' ||
+      typeof this.scope.UI.inspectorView === 'undefined'
+    ) return plzRepeat();
     this.scope.UI.inspectorView.showPanel('timeline');
   }
 }
-
-export {
-  DevTools,
-  devToolsConfig
-};

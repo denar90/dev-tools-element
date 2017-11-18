@@ -39,8 +39,10 @@ class Utils {
 
 class BaseTimelineLoader {
   constructor(url, devToolsConfig) {
-    this.scope = devToolsConfig.scope;
+    this.utils = new Utils();
     this.url = url;
+    this.devToolsConfig = devToolsConfig;
+    this.scope = this.devToolsConfig.scope;
   }
 
   fetchTimelineAsset(addRequestHeaders = Function.prototype, method = 'GET', body) {
@@ -94,8 +96,7 @@ class DropBoxTimelineLoader extends BaseTimelineLoader {
 class GDriveTimelineLoader extends BaseTimelineLoader {
   constructor(...args) {
     super(...args);
-    this.utils = new Utils();
-    this.userAccessToken = devToolsConfig.userAccessToken;
+    this.userAccessToken = this.devToolsConfig.userAccessToken;
 
     try {
       if (this.url.protocol === 'drive:') {
@@ -157,15 +158,19 @@ class GDriveTimelineLoader extends BaseTimelineLoader {
 }
 
 class AssetLoader {
+  constructor(devToolsConfig = {}) {
+    this.devToolsConfig = devToolsConfig;
+  }
+
   loadAsset(url) {
     if (url.protocol === 'drive:' || url.hostname === 'drive.google.com') {
-      const gDriveTimelineLoader = new GDriveTimelineLoader(url, devToolsConfig);
+      const gDriveTimelineLoader = new GDriveTimelineLoader(url, this.devToolsConfig);
       return gDriveTimelineLoader.fetchTimelineAsset();
     } else if (url.hostname.match('github.com')) {
-      const githubTimelineLoader = new GithubTimelineLoader(url, devToolsConfig);
+      const githubTimelineLoader = new GithubTimelineLoader(url, this.devToolsConfig);
       return githubTimelineLoader.fetchTimelineAsset();
     } else if (url.hostname.match('www.dropbox.com')) {
-      const dropboxTimelineLoader = new DropBoxTimelineLoader(url, devToolsConfig);
+      const dropboxTimelineLoader = new DropBoxTimelineLoader(url, this.devToolsConfig);
       return dropboxTimelineLoader.fetchTimelineAsset();
     } else {
       return Promise.reject();
@@ -174,11 +179,12 @@ class AssetLoader {
 }
 
 class DevToolsMonkeyPatcher {
-  constructor() {
-    this.scope = devToolsConfig.scope;
+  constructor(devToolsConfig = {}) {
+    this.devToolsConfig = devToolsConfig;
+    this.scope = this.devToolsConfig.scope;
     this.utils = new Utils();
     this.devtoolsBase = this.scope.document.getElementById('devtoolsscript').src.replace(/inspector\.js.*/, '');
-    this.timelineLoader = new AssetLoader();
+    this.timelineLoader = new AssetLoader(this.devToolsConfig);
   }
 
   patchDevTools() {
@@ -265,60 +271,56 @@ class DevToolsMonkeyPatcher {
       return this.origLoadResourcePromise(redirectedURL.toString());
     }
 
-    return this.timelineLoader.loadAsset(url, devToolsConfig).then(response => {
+    return this.timelineLoader.loadAsset(url).then(response => {
       this.utils.dispatchEvent('DevToolsTimelineLoadedInFrame', this.scope.document);
       return response;
     });
   }
 }
 
-let scope = null;
-let userAccessToken = null;
-
-// @todo fixme, I'm global config overridden by each new custom element instance
 class Config {
   constructor() {
-    this.userAccessToken = null;
+    this._scope = null;
+    this._userAccessToken = null;
   }
 
   set scope(val) {
-    scope = val;
+    this._scope = val;
   }
 
   get scope() {
-    if (!scope) throw new Error('set "scope" first');
-    return scope;
+    if (!this._scope) throw new Error('set "scope" first');
+    return this._scope;
   }
 
   set userAccessToken(value) {
-    userAccessToken = value;
+    this._userAccessToken = value;
   }
 
   get userAccessToken() {
-    if (!userAccessToken) throw new Error('set userAccessToken first');
-    return userAccessToken;
+    if (!this._userAccessToken) throw new Error('set userAccessToken first');
+    return this._userAccessToken;
   }
 }
 
-let devToolsConfig = null;
-
 class DevTools {
   constructor(options = {}) {
-    devToolsConfig = new Config();
-    devToolsConfig.scope = options.scope || window;
-    devToolsConfig.userAccessToken = options.userAccessToken;
-    this.scope = devToolsConfig.scope;
+    this.devToolsConfig = new Config();
+    this.devToolsConfig.scope = options.scope || window;
+    this.devToolsConfig.userAccessToken = options.userAccessToken;
+    this.scope = this.devToolsConfig.scope;
     this.utils = new Utils();
 
-    const devToolsMonkeyPatcher = new DevToolsMonkeyPatcher();
+    const devToolsMonkeyPatcher = new DevToolsMonkeyPatcher(this.devToolsConfig);
     devToolsMonkeyPatcher.patchDevTools();
 
+    this.showTimelinePanel();
     this.observeIdle();
   }
 
   updateConfig(options = {}) {
-    devToolsConfig.scope = options.scope || devToolsConfig.scope;
-    devToolsConfig.userAccessToken = options.userAccessToken || devToolsConfig.scope;
+    this.devToolsConfig.scope = options.scope || this.devToolsConfig.scope;
+    this.devToolsConfig.userAccessToken = options.userAccessToken || this.devToolsConfig.userAccessToken;
   }
 
   loadTimelineDataFromUrl(timelineURL) {
@@ -338,11 +340,14 @@ class DevTools {
       this.scope.Timeline.TimelinePanel.instance()._state !== this.scope.Timeline.TimelinePanel.State.Idle
     ) return plzRepeat();
 
-    this.showTimelinePanel();
     this.utils.dispatchEvent('DevToolsReadyInFrame', this.scope.document);
   }
 
   showTimelinePanel() {
+    const plzRepeat = () => setTimeout(() => this.showTimelinePanel(), 100);
+    if (typeof this.scope.UI === 'undefined' ||
+      typeof this.scope.UI.inspectorView === 'undefined'
+    ) return plzRepeat();
     this.scope.UI.inspectorView.showPanel('timeline');
   }
 }
