@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "build": "rollup --config && cp demo/index.js cypress/web/",
-    "test": "yarn run lint && yarn run cypress-test",
+    "test": "yarn run lint && npm run build && yarn run cypress-test",
     "cypress-test": "yarn run serve & yarn run cypress-run",
     "cypress-run": "cypress run --browser chrome",
     "serve": "kill $(lsof -t -i:8000) & http-server cypress/web -a localhost -p 8000 -s",
