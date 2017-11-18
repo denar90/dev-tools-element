@@ -1,4 +1,4 @@
-# dev-tools-element
+# dev-tools-element [![Build Status](https://travis-ci.org/denar90/dev-tools-element.svg?branch=master)](https://travis-ci.org/denar90/dev-tools-element)
 
 Inject and View DevTools Timeline trace easily.
 Inspired by amazing work done by @paulirish for [timeline-viewer](https://github.com/ChromeDevTools/timeline-viewer).
