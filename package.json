@@ -1,6 +1,6 @@
 {
   "name": "dev-tools-element",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "DevTools custom element works with public github urls, github gists",
   "main": "src/index.js",
   "scripts": {
