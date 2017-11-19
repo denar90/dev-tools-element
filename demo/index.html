@@ -59,10 +59,12 @@
   const devTools = document.querySelector('.default-dev-tools');
   devTools.addEventListener('DevToolsReady', () => {
     console.log('Dev Tools custom element is ready!!!');
+    console.log('DevTools Timeline - ', event.detail.Timeline);
   });
 
   devTools.addEventListener('DevToolsTimelineLoaded', () => {
     console.log('Timeline trace for Dev Tools custom element is loaded!!!');
+    console.log('DevTools Timeline - ', event.detail.Timeline);
   });
 </script>
 </html>

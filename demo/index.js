@@ -30,8 +30,8 @@ class Utils {
     });
   }
 
-  dispatchEvent(eventName, dispatcher) {
-    const event = document.createEvent('Event');
+  dispatchEvent(eventName, dispatcher, eventData = {}) {
+    const event = new CustomEvent(eventName, { detail: eventData });
     event.initEvent(eventName, true, true);
     dispatcher.dispatchEvent(event);
   }
@@ -272,7 +272,7 @@ class DevToolsMonkeyPatcher {
     }
 
     return this.timelineLoader.loadAsset(url).then(response => {
-      this.utils.dispatchEvent('DevToolsTimelineLoadedInFrame', this.scope.document);
+      this.utils.dispatchEvent('DevToolsTimelineLoadedInFrame', this.scope.document, { Timeline: this.scope.Timeline });
       return response;
     });
   }
@@ -340,7 +340,7 @@ class DevTools {
       this.scope.Timeline.TimelinePanel.instance()._state !== this.scope.Timeline.TimelinePanel.State.Idle
     ) return plzRepeat();
 
-    this.utils.dispatchEvent('DevToolsReadyInFrame', this.scope.document);
+    this.utils.dispatchEvent('DevToolsReadyInFrame', this.scope.document, { Timeline: this.scope.Timeline });
   }
 
   showTimelinePanel() {
@@ -381,8 +381,8 @@ customElements.define('dev-tools-element', class extends HTMLElement {
         </body>
       `);
 
-      this._contentWindow.document.addEventListener('DevToolsReadyInFrame', () => this.handleDevToolsReadyInFrame());
-      this._contentWindow.document.addEventListener('DevToolsTimelineLoadedInFrame', () => this.handleDevToolsTimelineLoadedInFrame());
+      this._contentWindow.document.addEventListener('DevToolsReadyInFrame', this.handleDevToolsReadyInFrame.bind(this));
+      this._contentWindow.document.addEventListener('DevToolsTimelineLoadedInFrame', this.handleDevToolsTimelineLoadedInFrame.bind(this));
     };
   }
 
@@ -415,12 +415,12 @@ customElements.define('dev-tools-element', class extends HTMLElement {
     this.append(this._iframe);
   }
 
-  handleDevToolsReadyInFrame() {
-    this.dispatchEvent(new CustomEvent('DevToolsReady'));
+  handleDevToolsReadyInFrame(event) {
+    this.dispatchEvent(new CustomEvent('DevToolsReady', { detail: event.detail }));
   }
 
-  handleDevToolsTimelineLoadedInFrame() {
-    this.dispatchEvent(new CustomEvent('DevToolsTimelineLoaded'));
+  handleDevToolsTimelineLoadedInFrame(event) {
+    this.dispatchEvent(new CustomEvent('DevToolsTimelineLoaded', { detail: event.detail }));
   }
 });
 

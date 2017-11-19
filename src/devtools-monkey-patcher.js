@@ -95,7 +95,7 @@ export default class DevToolsMonkeyPatcher {
     }
 
     return this.timelineLoader.loadAsset(url).then(response => {
-      this.utils.dispatchEvent('DevToolsTimelineLoadedInFrame', this.scope.document);
+      this.utils.dispatchEvent('DevToolsTimelineLoadedInFrame', this.scope.document, { Timeline: this.scope.Timeline });
       return response;
     });
   }
