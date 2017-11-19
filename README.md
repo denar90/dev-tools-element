@@ -1,13 +1,13 @@
 # dev-tools-element [![Build Status](https://travis-ci.org/denar90/dev-tools-element.svg?branch=master)](https://travis-ci.org/denar90/dev-tools-element)
 
 Inject and View DevTools Timeline trace easily.
-Inspired by amazing work done by @paulirish for [timeline-viewer](https://github.com/ChromeDevTools/timeline-viewer).
+Inspired by amazing work done by [@paulirish](https://github.com/paulirish) for [timeline-viewer](https://github.com/ChromeDevTools/timeline-viewer).
 
 ## Demo
 
-![giphy 7](https://user-images.githubusercontent.com/6231516/32519349-1f357e1a-c415-11e7-8414-468a14f1e8ee.gif)
-
 [Check it live!](https://denar90.github.io/dev-tools-element/demo/)
+
+![ezgif-3-abec631813](https://user-images.githubusercontent.com/6231516/32994748-5d1f57ba-cd74-11e7-964f-97ac1c7b2d40.gif)
 
 ## Install
 
@@ -38,12 +38,12 @@ Events:
 Example:
  
 ```js
-  const devTools = document.querySelector('.default-dev-tools');
-  devTools.addEventListener('DevToolsReady', () => {
+  const devToolsElement = document.querySelector('dev-tools-element');
+  devToolsElement.addEventListener('DevToolsReady', () => {
     console.log('Dev Tools custom element is ready!!!');
   });
 
-  devTools.addEventListener('DevToolsTimelineLoaded', () => {
+  devToolsElement.addEventListener('DevToolsTimelineLoaded', () => {
     console.log('Timeline trace for Dev Tools custom element is loaded!!!');
   });
 ```
@@ -101,7 +101,7 @@ Example:
   });
 </script>
 
-```
-
+``` 
+Look at [source](https://github.com/denar90/dev-tools-element/blob/master/demo/index.html#L10-L55).
 
 
