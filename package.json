@@ -20,7 +20,8 @@
   ],
   "ignore": [
     "node_modules",
-    "demo"
+    "demo",
+    "cypress"
   ],
   "license": "Apache-2.0",
   "devDependencies": {
