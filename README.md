@@ -32,19 +32,30 @@ Attributes:
  
 Events:
  
- - `DevToolsReady` - event triggered when Dev Tools loaded and ready to use.
- - `DevToolsTimelineLoaded` - event triggered when timeline trace for Dev Tools custom element is loaded.
+ - `DevToolsReady` - event triggered when Dev Tools loaded and ready to use. 
+
+Arguments:
+[CustomEvent.detail](https://developer.mozilla.org/ru/docs/Web/API/CustomEvent). 
+Contains Timeline object.  
  
+ - `DevToolsTimelineLoaded` - event triggered when timeline trace for Dev Tools custom element is loaded.
+
+Arguments:
+[CustomEvent.detail](https://developer.mozilla.org/ru/docs/Web/API/CustomEvent). 
+Contains Timeline object.  
+
 Example:
  
 ```js
   const devToolsElement = document.querySelector('dev-tools-element');
-  devToolsElement.addEventListener('DevToolsReady', () => {
+  devToolsElement.addEventListener('DevToolsReady', event => {
     console.log('Dev Tools custom element is ready!!!');
+    console.log('DevTools Timeline - ', event.detail.Timeline);
   });
 
   devToolsElement.addEventListener('DevToolsTimelineLoaded', () => {
     console.log('Timeline trace for Dev Tools custom element is loaded!!!');
+    console.log('DevTools Timeline - ', event.detail.Timeline);
   });
 ```
 

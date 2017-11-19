@@ -27,9 +27,8 @@ export default class Utils {
     });
   }
 
-  dispatchEvent(eventName, dispatcher) {
-    const event = document.createEvent('Event');
-    event.initEvent(eventName, true, true);
+  dispatchEvent(eventName, dispatcher, eventData = {}) {
+    const event = new CustomEvent(eventName, { detail: eventData });
     dispatcher.dispatchEvent(event);
   }
 }

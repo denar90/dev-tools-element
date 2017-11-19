@@ -39,7 +39,7 @@ export default class DevTools {
       this.scope.Timeline.TimelinePanel.instance()._state !== this.scope.Timeline.TimelinePanel.State.Idle
     ) return plzRepeat();
 
-    this.utils.dispatchEvent('DevToolsReadyInFrame', this.scope.document);
+    this.utils.dispatchEvent('DevToolsReadyInFrame', this.scope.document, { Timeline: this.scope.Timeline });
   }
 
   showTimelinePanel() {

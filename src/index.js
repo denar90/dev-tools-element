@@ -29,8 +29,8 @@ customElements.define('dev-tools-element', class extends HTMLElement {
         </body>
       `);
 
-      this._contentWindow.document.addEventListener('DevToolsReadyInFrame', () => this.handleDevToolsReadyInFrame());
-      this._contentWindow.document.addEventListener('DevToolsTimelineLoadedInFrame', () => this.handleDevToolsTimelineLoadedInFrame());
+      this._contentWindow.document.addEventListener('DevToolsReadyInFrame', this.handleDevToolsReadyInFrame.bind(this));
+      this._contentWindow.document.addEventListener('DevToolsTimelineLoadedInFrame', this.handleDevToolsTimelineLoadedInFrame.bind(this));
     };
   }
 
@@ -63,11 +63,11 @@ customElements.define('dev-tools-element', class extends HTMLElement {
     this.append(this._iframe);
   }
 
-  handleDevToolsReadyInFrame() {
-    this.dispatchEvent(new CustomEvent('DevToolsReady'));
+  handleDevToolsReadyInFrame(event) {
+    this.dispatchEvent(new CustomEvent('DevToolsReady', { detail: event.detail }));
   }
 
-  handleDevToolsTimelineLoadedInFrame() {
-    this.dispatchEvent(new CustomEvent('DevToolsTimelineLoaded'));
+  handleDevToolsTimelineLoadedInFrame(event) {
+    this.dispatchEvent(new CustomEvent('DevToolsTimelineLoaded', { detail: event.detail }));
   }
 });
