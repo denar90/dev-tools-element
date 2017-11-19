@@ -32,7 +32,6 @@ class Utils {
 
   dispatchEvent(eventName, dispatcher, eventData = {}) {
     const event = new CustomEvent(eventName, { detail: eventData });
-    event.initEvent(eventName, true, true);
     dispatcher.dispatchEvent(event);
   }
 }
